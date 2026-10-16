@@ -76,14 +76,14 @@ Welcom&Login
    <img src="./screenshots/login.png" width="220" alt="Login Screen" />
 </p>
 
-Home & Wallet
+# Profile, Home & Wallet
 
 <p align="center">
+  <img src="./screenshots/profile.png" width="220" alt="Profile Screen" />
   <img src="./screenshots/home.png" width="220" alt="Home Screen" />
   <img src="./screenshots/wallet.png" width="220" alt="Wallet Screen" />
-  <img src="./screenshots/profile.png" width="220" alt="Profile Screen" />
 </p>
-
+# Statistic
 <p align="center">
   <img src="./screenshots/statistic.png" width="220" alt="Statistics Screen" />
   <img src="./screenshots/statistic2.png" width="220" alt="Statistics Detail Screen" />
