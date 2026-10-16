@@ -1,7 +1,5 @@
 Wallet App
 
-Demo： https://wallet-app-three-chi.vercel.app/
-
 GitHub： https://github.com/110121-RB/wallet-app
 
 1. 概要
@@ -67,6 +65,29 @@ npx expo start
 Supabaseの接続設定には、環境変数の設定が必要です。
 
 ※ .env などの環境設定ファイルには、認証情報を含めないよう注意してください。
+
+####Screenshots####
+
+Home & Wallet
+
+<p align="center">
+  <img src="./screenshots/home.png" width="220" alt="Home Screen" />
+  <img src="./screenshots/wallet.png" width="220" alt="Wallet Screen" />
+  <img src="./screenshots/statistic.png" width="220" alt="Statistics Screen" />
+</p>
+
+Other Screens
+
+<p align="center">
+  <img src="./screenshots/login.png" width="220" alt="Login Screen" />
+  <img src="./screenshots/profile.png" width="220" alt="Profile Screen" />
+  <img src="./screenshots/statistic2.png" width="220" alt="Statistics Detail Screen" />
+</p>
+<p align="center">
+  <img src="./screenshots/sign in.png" width="220" alt="Sign In Screen" />
+  <img src="./screenshots/statistics 3.png" width="220" alt="Statistics Overview" />
+  <img src="./screenshots/welcom.png" width="220" alt="Welcome Screen" />
+</p>
 
 # Welcome to your Expo app 👋
 
