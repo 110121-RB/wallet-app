@@ -68,7 +68,7 @@ Supabaseの接続設定には、環境変数の設定が必要です。
 
 ####Screenshots####
 
-Welcom&Login
+# Welcom & Login
 
 <p align="center">
    <img src="./screenshots/welcom.png" width="220" alt="Welcome Screen" />
@@ -83,7 +83,9 @@ Welcom&Login
   <img src="./screenshots/home.png" width="220" alt="Home Screen" />
   <img src="./screenshots/wallet.png" width="220" alt="Wallet Screen" />
 </p>
+
 # Statistic
+
 <p align="center">
   <img src="./screenshots/statistic.png" width="220" alt="Statistics Screen" />
   <img src="./screenshots/statistic2.png" width="220" alt="Statistics Detail Screen" />
