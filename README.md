@@ -1,3 +1,73 @@
+Wallet App
+
+Demo： https://wallet-app-three-chi.vercel.app/
+
+GitHub： https://github.com/110121-RB/wallet-app
+
+1. 概要
+
+Wallet Appは、日々の収入と支出を管理するための家計管理アプリです。
+
+ユーザーが収入・支出を記録し、ウォレットごとの残高や取引履歴を確認できるように開発しました。
+
+2. 主な機能
+
+- ユーザー登録・ログイン
+- ウォレットの作成・管理
+- 収入・支出の登録・編集・削除
+- 取引日を指定した収支の記録
+- ウォレットごとの残高管理
+- 収入・支出の統計表示
+- プロフィール情報の管理
+
+※ 実装済みの機能に合わせて調整してください。
+
+3. 使用技術
+
+- Frontend: React Native, Expo, TypeScript
+- Navigation: Expo Router
+- Backend / Database: Supabase, PostgreSQL
+- Authentication: Supabase Auth
+- Deployment: Vercel（Webデモ）
+
+4. デモ
+
+- Demo URL: https://wallet-app-three-chi.vercel.app/
+
+5. 開発目的
+
+React NativeとSupabaseを使用したアプリ開発を通じて、画面設計、データベース設計、認証機能、データの取得・登録・更新・削除について学習することを目的としています。
+
+6. 工夫した点
+
+- ウォレットごとに収入と支出を管理できるように設計しました。
+- 取引情報をデータベースと連携し、データを管理できるようにしました。
+- ユーザーが使いやすい画面構成を意識して開発しました。
+
+7. 今後の改善点
+
+- UI・UXの改善
+- 収支データの分析機能の拡充
+- エラー処理と入力チェックの改善
+
+8. 起動方法
+
+必要な環境
+
+- Node.js
+- npm
+
+セットアップ
+
+git clone <GitHubリポジトリのURL>
+cd wallet-app
+npm install
+npx expo start
+
+Supabaseの接続設定には、環境変数の設定が必要です。
+
+※ .env などの環境設定ファイルには、認証情報を含めないよう注意してください。
+
 # Welcome to your Expo app 👋
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
