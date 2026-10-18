@@ -10,7 +10,13 @@ import { Image } from "expo-image";
 import { router, useRouter } from "expo-router";
 import * as Icons from "phosphor-react-native";
 import React from "react";
-import { Alert, StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+  Alert,
+  Platform,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 const Profile = () => {
@@ -40,25 +46,60 @@ const Profile = () => {
     {
       title: "Logout",
       icon: <Icons.PowerIcon size={26} color={colors.white} weight="fill" />,
-      routeName: "/(modals)/profileModal",
       bgColor: "#e11d48",
     },
   ];
+
   const handleLogout = async () => {
-    await authContext?.logout();
-    route.replace("/(auth)/welcome");
+    if (!authContext) {
+      return;
+    }
+
+    try {
+      console.log("===== LOGOUT START =====");
+
+      await authContext.logout();
+
+      console.log("===== LOGOUT SUCCESS =====");
+
+      route.replace("/(auth)/welcome");
+    } catch (error: any) {
+      console.error("Logout error:", error);
+
+      const message = error?.message ?? "Unable to logout. Please try again.";
+
+      if (Platform.OS === "web") {
+        window.alert(message);
+      } else {
+        Alert.alert("Logout failed", message);
+      }
+    }
   };
+
   const showLogoutAlert = () => {
+    // Web / Vercel
+    if (Platform.OS === "web") {
+      const confirmed = window.confirm("Are you sure you want to logout?");
+
+      if (confirmed) {
+        void handleLogout();
+      }
+
+      return;
+    }
+
+    // Expo iOS / Android
     Alert.alert("Confirm", "Are you sure you want to logout?", [
       {
         text: "Cancel",
-        onPress: () => console.log("Cancel Logout"),
         style: "cancel",
       },
       {
         text: "Logout",
-        onPress: () => handleLogout(),
         style: "destructive",
+        onPress: () => {
+          void handleLogout();
+        },
       },
     ]);
   };
