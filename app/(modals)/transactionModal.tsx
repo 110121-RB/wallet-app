@@ -2,25 +2,29 @@ import BackButton from "@/components/BackButton";
 import Button from "@/components/Button";
 import Header from "@/components/Header";
 import ModalWrapper from "@/components/ModalWrapper";
+import TransactionDateInput from "@/components/TransactionDateInput";
 import Typo from "@/components/Typo";
 import WalletColorPicker from "@/components/WalletColorPicker";
 import WalletIconPicker from "@/components/WalletIconPicker";
+
 import { transactionTypes } from "@/constants/data";
 import { colors, radius, spacingX, spacingY } from "@/constants/theme";
 import { AuthContext } from "@/contexts/authContext";
+
 import {
   createOrUpdateTransaction,
   deleteTransaction,
 } from "@/services/transactionService";
+
 import { getUserWallets } from "@/services/walletService";
 import { TransactionType } from "@/types";
 import { scale, verticalScale } from "@/utils/styling";
-import DateTimePicker, {
-  DateTimePickerEvent,
-} from "@react-native-community/datetimepicker";
+
 import { useFocusEffect } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+
 import React, { useCallback, useContext, useMemo, useState } from "react";
+
 import {
   Alert,
   Platform,
@@ -31,7 +35,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
 import { Dropdown } from "react-native-element-dropdown";
+
+// ==============================
+// TYPES
+// ==============================
 
 type Wallet = {
   id: string;
@@ -45,6 +54,10 @@ type CategoryOption = {
   label: string;
   value: TransactionType["category"];
 };
+
+// ==============================
+// CATEGORIES
+// ==============================
 
 const incomeCategories: CategoryOption[] = [
   { label: "Salary", value: "salary" },
@@ -66,76 +79,142 @@ const expenseCategories: CategoryOption[] = [
   { label: "Other", value: "other" },
 ];
 
-const formatDisplayDate = (date: Date) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}年${month}月${day}日`;
+// ==============================
+// HELPERS
+// ==============================
+
+const showMessage = (title: string, message: string) => {
+  if (Platform.OS === "web") {
+    window.alert(`${title}\n${message}`);
+    return;
+  }
+
+  Alert.alert(title, message);
 };
+
+const parseTransactionDate = (value: unknown): Date => {
+  if (typeof value !== "string" || !value) {
+    return new Date();
+  }
+
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+  if (match) {
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+
+    const parsed = new Date(year, month - 1, day);
+
+    if (
+      parsed.getFullYear() === year &&
+      parsed.getMonth() === month - 1 &&
+      parsed.getDate() === day
+    ) {
+      return parsed;
+    }
+  }
+
+  const parsed = new Date(value);
+
+  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+};
+
+// ==============================
+// TRANSACTION MODAL
+// ==============================
 
 const TransactionModal = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
+
   const user = useContext(AuthContext)?.user;
 
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [showCustomize, setShowCustomize] = useState(false);
+
   const [wallets, setWallets] = useState<Wallet[]>([]);
+
   const [loading, setLoading] = useState(false);
+
   const [deleting, setDeleting] = useState(false);
+
   const [walletLoading, setWalletLoading] = useState(false);
 
   const transactionId = typeof params.id === "string" ? params.id : undefined;
+
   const isEditing = Boolean(transactionId);
+
   const paramType: TransactionType["type"] =
     params.type === "income" ? "income" : "expense";
+
+  // ==============================
+  // TRANSACTION STATE
+  // ==============================
 
   const [transactionData, setTransactionData] = useState<
     Partial<TransactionType>
   >({
     id: transactionId,
+
     uid: user?.uid,
+
     walletId: typeof params.walletId === "string" ? params.walletId : undefined,
+
     name: typeof params.name === "string" ? params.name : "",
+
     description:
       typeof params.description === "string" ? params.description : "",
+
     type: paramType,
+
     category:
       typeof params.category === "string"
         ? (params.category as TransactionType["category"])
         : undefined,
+
     amount: params.amount !== undefined ? Number(params.amount) : 0,
+
     iconName:
       typeof params.iconName === "string"
         ? (params.iconName as TransactionType["iconName"])
         : "wallet",
+
     iconColor:
       typeof params.iconColor === "string" ? params.iconColor : "#FFFFFF",
+
     backgroundColor:
       typeof params.backgroundColor === "string"
         ? params.backgroundColor
         : "#6C63FF",
-    transactionDate:
-      typeof params.transactionDate === "string"
-        ? new Date(`${params.transactionDate}T00:00:00`)
-        : new Date(),
+
+    transactionDate: parseTransactionDate(params.transactionDate),
   });
+
+  // ==============================
+  // FETCH WALLETS
+  // ==============================
 
   const fetchWallets = useCallback(async () => {
     if (!user?.uid) return;
 
     try {
       setWalletLoading(true);
+
       const res = await getUserWallets(user.uid);
 
       if (!res.success) {
-        Alert.alert("Wallet", res.msg || "Failed to load wallets");
+        console.error("[Wallet] Fetch failed:", res.msg);
+
+        showMessage("Wallet", res.msg || "Failed to load wallets");
+
         return;
       }
 
       setWallets((res.data ?? []) as Wallet[]);
     } catch (error: any) {
-      Alert.alert("Wallet", error?.message || "Failed to load wallets");
+      console.error("[Wallet] Fetch exception:", error);
+
+      showMessage("Wallet", error?.message || "Failed to load wallets");
     } finally {
       setWalletLoading(false);
     }
@@ -143,9 +222,13 @@ const TransactionModal = () => {
 
   useFocusEffect(
     useCallback(() => {
-      fetchWallets();
+      void fetchWallets();
     }, [fetchWallets]),
   );
+
+  // ==============================
+  // DROPDOWN DATA
+  // ==============================
 
   const categoryData = useMemo(
     () =>
@@ -156,7 +239,10 @@ const TransactionModal = () => {
   const walletDropdownData = useMemo(
     () =>
       wallets.map((wallet) => ({
-        label: `${wallet.name} (¥${wallet.amount.toLocaleString()})`,
+        label: `${wallet.name} (¥${Number(
+          wallet.amount ?? 0,
+        ).toLocaleString()})`,
+
         value: wallet.id,
       })),
     [wallets],
@@ -171,125 +257,194 @@ const TransactionModal = () => {
     [],
   );
 
-  const onDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
-    if (Platform.OS === "android") setShowDatePicker(false);
-    if (event.type === "dismissed" || !selectedDate) return;
-
-    setTransactionData((prev) => ({
-      ...prev,
-      transactionDate: selectedDate,
-    }));
-  };
+  // ==============================
+  // SAVE / UPDATE
+  // ==============================
 
   const onSubmit = async () => {
-    if (deleting) return;
+    console.log("[Transaction] Save button pressed:", Platform.OS);
+
+    if (loading || deleting) return;
 
     const name = transactionData.name?.trim();
+
     const description = transactionData.description?.trim() || "";
+
     const amount = Number(transactionData.amount ?? 0);
 
+    // VALIDATION
+
     if (!user?.uid) {
-      Alert.alert("Transaction", "User not found");
+      showMessage("Transaction", "User not found");
       return;
     }
+
     if (!transactionData.walletId) {
-      Alert.alert("Transaction", "Please select a wallet");
+      showMessage("Transaction", "Please select a wallet");
       return;
     }
+
     if (!name) {
-      Alert.alert("Transaction", "Please enter transaction name");
+      showMessage("Transaction", "Please enter transaction name");
       return;
     }
+
     if (!Number.isFinite(amount) || amount <= 0) {
-      Alert.alert("Transaction", "Please enter a valid amount");
+      showMessage("Transaction", "Please enter a valid amount");
       return;
     }
+
     if (
       transactionData.type !== "income" &&
       transactionData.type !== "expense"
     ) {
-      Alert.alert("Transaction", "Please select transaction type");
+      showMessage("Transaction", "Please select transaction type");
       return;
     }
+
     if (!transactionData.category) {
-      Alert.alert("Transaction", "Please select a category");
+      showMessage("Transaction", "Please select a category");
       return;
     }
+
+    // SAVE TO SUPABASE
 
     try {
       setLoading(true);
 
       const data: Partial<TransactionType> = {
         ...transactionData,
+
         uid: user.uid,
+
         walletId: transactionData.walletId,
+
         name,
         description,
+
         type: transactionData.type,
         category: transactionData.category,
+
         amount,
+
         transactionDate: transactionData.transactionDate ?? new Date(),
+
         iconName: transactionData.iconName ?? "wallet",
+
         iconColor: transactionData.iconColor ?? "#FFFFFF",
+
         backgroundColor: transactionData.backgroundColor ?? "#6C63FF",
       };
+
+      console.log("[Transaction] Calling createOrUpdateTransaction");
 
       const res = await createOrUpdateTransaction(data);
 
       if (!res.success) {
-        Alert.alert("Transaction", res.msg || "Failed to save transaction");
+        console.error("[Transaction] Save failed:", res.msg);
+
+        showMessage("Transaction", res.msg || "Failed to save transaction");
+
         return;
       }
 
+      console.log("[Transaction] Save successful");
+
       router.back();
     } catch (error: any) {
-      Alert.alert("Transaction", error?.message || "Something went wrong");
+      console.error("[Transaction] Save exception:", error);
+
+      showMessage("Transaction", error?.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
   };
 
+  // ==============================
+  // DELETE TRANSACTION
+  // ==============================
+
   const onDelete = () => {
-    if (!transactionId || !user?.uid || deleting) return;
+    console.log("[Transaction] Delete button pressed");
+
+    if (loading || deleting) return;
+
+    if (!transactionId || !user?.uid) {
+      showMessage("Transaction", "Transaction or user not found");
+      return;
+    }
 
     const id = transactionId;
     const uid = user.uid;
 
-    Alert.alert(
-      "Delete Transaction",
-      "Are you sure you want to delete this transaction? This action cannot be undone.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              setDeleting(true);
-              const res = await deleteTransaction(id, uid);
+    const performDelete = async () => {
+      try {
+        setDeleting(true);
 
-              if (!res.success) {
-                Alert.alert(
-                  "Transaction",
-                  res.msg || "Failed to delete transaction",
-                );
-                return;
-              }
+        console.log("[Transaction] Calling deleteTransaction");
 
-              router.back();
-            } catch (error: any) {
-              Alert.alert(
-                "Transaction",
-                error?.message || "Failed to delete transaction",
-              );
-            } finally {
-              setDeleting(false);
-            }
-          },
+        const res = await deleteTransaction(id, uid);
+
+        if (!res.success) {
+          console.error("[Transaction] Delete failed:", res.msg);
+
+          showMessage("Transaction", res.msg || "Failed to delete transaction");
+
+          return;
+        }
+
+        console.log("[Transaction] Delete successful");
+
+        router.back();
+      } catch (error: any) {
+        console.error("[Transaction] Delete exception:", error);
+
+        showMessage(
+          "Transaction",
+          error?.message || "Failed to delete transaction",
+        );
+      } finally {
+        setDeleting(false);
+      }
+    };
+
+    const message =
+      "Are you sure you want to delete " +
+      "this transaction? " +
+      "This action cannot be undone.";
+
+    // WEB CONFIRMATION
+
+    if (Platform.OS === "web") {
+      const confirmed = window.confirm(message);
+
+      if (confirmed) {
+        void performDelete();
+      }
+
+      return;
+    }
+
+    // EXPO GO CONFIRMATION
+
+    Alert.alert("Delete Transaction", message, [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => {
+          void performDelete();
         },
-      ],
-    );
+      },
+    ]);
   };
+
+  // ==============================
+  // UI
+  // ==============================
 
   return (
     <ModalWrapper>
@@ -297,7 +452,9 @@ const TransactionModal = () => {
         <Header
           title={isEditing ? "Edit Transaction" : "New Transaction"}
           leftIcon={<BackButton />}
-          style={{ marginBottom: spacingY._10 }}
+          style={{
+            marginBottom: spacingY._10,
+          }}
         />
 
         <ScrollView
@@ -305,6 +462,8 @@ const TransactionModal = () => {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.form}
         >
+          {/* TRANSACTION TYPE */}
+
           <FormField label="Transaction Type">
             <Dropdown
               {...getDropdownProps()}
@@ -315,13 +474,17 @@ const TransactionModal = () => {
               onChange={(item) =>
                 setTransactionData((prev) => ({
                   ...prev,
+
                   type: item.value as TransactionType["type"],
+
                   category:
                     prev.type === item.value ? prev.category : undefined,
                 }))
               }
             />
           </FormField>
+
+          {/* CATEGORY */}
 
           <FormField label="Category">
             <Dropdown
@@ -339,6 +502,8 @@ const TransactionModal = () => {
             />
           </FormField>
 
+          {/* TRANSACTION NAME */}
+
           <FormField label="Transaction Name">
             <TextInput
               style={styles.input}
@@ -346,10 +511,15 @@ const TransactionModal = () => {
               placeholderTextColor={colors.neutral500}
               value={transactionData.name ?? ""}
               onChangeText={(name) =>
-                setTransactionData((prev) => ({ ...prev, name }))
+                setTransactionData((prev) => ({
+                  ...prev,
+                  name,
+                }))
               }
             />
           </FormField>
+
+          {/* AMOUNT */}
 
           <FormField label="Amount">
             <TextInput
@@ -362,10 +532,16 @@ const TransactionModal = () => {
               }
               onChangeText={(text) => {
                 const amount = Number(text.replace(/\D/g, "")) || 0;
-                setTransactionData((prev) => ({ ...prev, amount }));
+
+                setTransactionData((prev) => ({
+                  ...prev,
+                  amount,
+                }));
               }}
             />
           </FormField>
+
+          {/* WALLET */}
 
           <FormField label="Wallet">
             <Dropdown
@@ -390,46 +566,22 @@ const TransactionModal = () => {
             />
           </FormField>
 
-          <FormField label="Transaction Date">
-            {!showDatePicker && (
-              <Pressable
-                style={styles.dateButton}
-                onPress={() => setShowDatePicker(true)}
-              >
-                <Typo size={14} color={colors.white}>
-                  {formatDisplayDate(
-                    transactionData.transactionDate ?? new Date(),
-                  )}
-                </Typo>
-              </Pressable>
-            )}
+          {/* TRANSACTION DATE */}
 
-            {showDatePicker && (
-              <View>
-                <DateTimePicker
-                  themeVariant="dark"
-                  textColor={colors.white}
-                  value={transactionData.transactionDate ?? new Date()}
-                  maximumDate={new Date()}
-                  locale={Platform.OS === "ios" ? "ja-JP" : undefined}
-                  timeZoneName="Asia/Tokyo"
-                  mode="date"
-                  display="spinner"
-                  onChange={onDateChange}
-                />
-                {Platform.OS === "ios" && (
-                  <TouchableOpacity
-                    style={styles.dateButton}
-                    onPress={() => setShowDatePicker(false)}
-                  >
-                    <Typo size={15} fontWeight="500">
-                      Done
-                    </Typo>
-                  </TouchableOpacity>
-                )}
-              </View>
-            )}
+          <FormField label="Transaction Date">
+            <TransactionDateInput
+              value={transactionData.transactionDate ?? new Date()}
+              maximumDate={new Date()}
+              onChange={(selectedDate) =>
+                setTransactionData((prev) => ({
+                  ...prev,
+                  transactionDate: selectedDate,
+                }))
+              }
+            />
           </FormField>
+
+          {/* DESCRIPTION */}
 
           <FormField label="Description" optional>
             <TextInput
@@ -440,10 +592,15 @@ const TransactionModal = () => {
               textAlignVertical="top"
               value={transactionData.description ?? ""}
               onChangeText={(description) =>
-                setTransactionData((prev) => ({ ...prev, description }))
+                setTransactionData((prev) => ({
+                  ...prev,
+                  description,
+                }))
               }
             />
           </FormField>
+
+          {/* CUSTOMIZE */}
 
           <View style={styles.customizeSection}>
             <Pressable
@@ -452,10 +609,12 @@ const TransactionModal = () => {
             >
               <View style={styles.customizeTitle}>
                 <Typo color={colors.neutral200}>Customize</Typo>
+
                 <Typo size={13} color={colors.neutral500}>
                   Icon and color
                 </Typo>
               </View>
+
               <Typo size={20} color={colors.neutral300}>
                 {showCustomize ? "−" : "+"}
               </Typo>
@@ -470,7 +629,10 @@ const TransactionModal = () => {
                       transactionData.backgroundColor ?? "#6C63FF"
                     }
                     onSelect={(iconName) =>
-                      setTransactionData((prev) => ({ ...prev, iconName }))
+                      setTransactionData((prev) => ({
+                        ...prev,
+                        iconName,
+                      }))
                     }
                   />
                 </FormField>
@@ -491,6 +653,8 @@ const TransactionModal = () => {
           </View>
         </ScrollView>
       </View>
+
+      {/* FOOTER */}
 
       <View style={styles.footer}>
         {isEditing && (
@@ -519,6 +683,10 @@ const TransactionModal = () => {
   );
 };
 
+// ==============================
+// FORM FIELD
+// ==============================
+
 const FormField = ({
   label,
   optional = false,
@@ -531,30 +699,48 @@ const FormField = ({
   <View style={styles.inputContainer}>
     <View style={styles.fieldLabelRow}>
       <Typo color={colors.neutral200}>{label}</Typo>
+
       {optional && (
         <Typo color={colors.neutral500} size={14}>
           (optional)
         </Typo>
       )}
     </View>
+
     {children}
   </View>
 );
 
+// ==============================
+// DROPDOWN PROPS
+// ==============================
+
 const getDropdownProps = () => ({
   style: styles.dropdownContainer,
+
   activeColor: colors.neutral700,
+
   selectedTextStyle: styles.dropdownSelectedText,
+
   placeholderStyle: styles.dropdownPlaceholder,
+
   iconStyle: styles.dropdownIcon,
+
   labelField: "label" as const,
   valueField: "value" as const,
+
   itemTextStyle: styles.dropdownItemText,
+
   itemContainerStyle: styles.dropdownItemContainer,
+
   containerStyle: styles.dropdownListContainer,
 });
 
 export default TransactionModal;
+
+// ==============================
+// STYLES
+// ==============================
 
 const styles = StyleSheet.create({
   container: {
@@ -562,6 +748,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: spacingX._20,
   },
+
   footer: {
     alignItems: "center",
     flexDirection: "row",
@@ -573,6 +760,7 @@ const styles = StyleSheet.create({
     marginBottom: spacingY._5,
     borderTopWidth: 1,
   },
+
   deleteButton: {
     minHeight: verticalScale(50),
     minWidth: verticalScale(96),
@@ -583,18 +771,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  disabledButton: { opacity: 0.5 },
+
+  disabledButton: {
+    opacity: 0.5,
+  },
+
   form: {
     gap: spacingY._20,
     marginTop: spacingY._15,
     paddingBottom: spacingY._30,
   },
-  inputContainer: { gap: spacingY._10 },
+
+  inputContainer: {
+    gap: spacingY._10,
+  },
+
   fieldLabelRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
+
   input: {
     height: verticalScale(54),
     paddingHorizontal: spacingX._15,
@@ -605,10 +802,12 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: verticalScale(14),
   },
+
   descriptionInput: {
     height: verticalScale(100),
     paddingTop: spacingY._15,
   },
+
   dropdownContainer: {
     height: verticalScale(54),
     paddingHorizontal: spacingX._15,
@@ -617,15 +816,21 @@ const styles = StyleSheet.create({
     borderRadius: radius._15,
     borderCurve: "continuous",
   },
-  dropdownItemText: { color: colors.white },
+
+  dropdownItemText: {
+    color: colors.white,
+  },
+
   dropdownSelectedText: {
     color: colors.white,
     fontSize: verticalScale(14),
   },
+
   dropdownPlaceholder: {
     color: colors.neutral500,
     fontSize: verticalScale(14),
   },
+
   dropdownListContainer: {
     backgroundColor: colors.neutral900,
     borderRadius: radius._15,
@@ -633,30 +838,27 @@ const styles = StyleSheet.create({
     paddingVertical: spacingY._7,
     top: 5,
     borderColor: colors.neutral500,
+
     shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 5 },
+    shadowOffset: {
+      width: 0,
+      height: 5,
+    },
     shadowOpacity: 1,
     shadowRadius: 15,
     elevation: 5,
   },
+
   dropdownItemContainer: {
     borderRadius: radius._15,
     marginHorizontal: spacingX._7,
   },
+
   dropdownIcon: {
     height: verticalScale(30),
     tintColor: colors.neutral300,
   },
-  dateButton: {
-    height: verticalScale(54),
-    paddingHorizontal: spacingX._15,
-    borderColor: colors.neutral300,
-    borderWidth: 1,
-    borderRadius: radius._15,
-    borderCurve: "continuous",
-    alignItems: "flex-start",
-    justifyContent: "center",
-  },
+
   customizeSection: {
     borderColor: colors.neutral700,
     borderWidth: 1,
@@ -664,12 +866,19 @@ const styles = StyleSheet.create({
     padding: spacingX._15,
     gap: spacingY._15,
   },
+
   customizeHeader: {
     minHeight: verticalScale(32),
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  customizeTitle: { gap: spacingY._5 },
-  customizeContent: { gap: spacingY._20 },
+
+  customizeTitle: {
+    gap: spacingY._5,
+  },
+
+  customizeContent: {
+    gap: spacingY._20,
+  },
 });

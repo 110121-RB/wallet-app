@@ -55,6 +55,7 @@ const Home = () => {
 
       setWallets((walletResult.data ?? []) as WalletType[]);
       setTransactions((transactionResult.data ?? []) as TransactionType[]);
+
     } finally {
       setLoading(false);
     }
@@ -84,7 +85,10 @@ const Home = () => {
               {authContext?.user?.name ?? "User"}
             </Typo>
           </View>
-          <TouchableOpacity style={styles.searchIcon}>
+          <TouchableOpacity
+            style={styles.searchIcon}
+            onPress={() => router.push("/transactions" as any)}
+          >
             <Icons.MagnifyingGlassIcon
               size={verticalScale(20)}
               color={colors.neutral200}
@@ -105,6 +109,34 @@ const Home = () => {
               totalExpenses={summary.totalExpenses}
             />
           </View>
+
+          <TouchableOpacity
+            style={styles.recurringShortcut}
+            onPress={() => router.push("/recurring" as any)}
+          >
+            <View style={styles.recurringIcon}>
+              <Icons.ArrowsClockwiseIcon size={22} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Typo size={15} fontWeight="600">Recurring transactions</Typo>
+              <Typo size={12} color={colors.neutral400}>Manage automatic income and expenses</Typo>
+            </View>
+            <Icons.CaretRightIcon size={20} color={colors.neutral400} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.recurringShortcut}
+            onPress={() => router.push("/goals" as any)}
+          >
+            <View style={styles.recurringIcon}>
+              <Icons.TargetIcon size={22} color={colors.primary} weight="fill" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Typo size={15} fontWeight="600">Savings goals</Typo>
+              <Typo size={12} color={colors.neutral400}>Track progress toward your plans</Typo>
+            </View>
+            <Icons.CaretRightIcon size={20} color={colors.neutral400} />
+          </TouchableOpacity>
 
           <TransactionList
             data={transactions.slice(0, 10)}
@@ -160,5 +192,21 @@ const styles = StyleSheet.create({
     marginTop: spacingY._10,
     paddingBottom: verticalScale(100),
     gap: spacingY._25,
+  },
+  recurringShortcut: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacingX._12,
+    padding: spacingX._15,
+    backgroundColor: colors.neutral800,
+    borderRadius: 16,
+  },
+  recurringIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    backgroundColor: colors.neutral700,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

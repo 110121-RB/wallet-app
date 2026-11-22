@@ -31,6 +31,13 @@ export default function CustomTabs({
         color={isFocused ? colors.primary : colors.neutral400}
       />
     ),
+    budget: (isFocused: boolean) => (
+      <Icons.PiggyBank
+        size={verticalScale(30)}
+        weight={isFocused ? "fill" : "regular"}
+        color={isFocused ? colors.primary : colors.neutral400}
+      />
+    ),
     wallet: (isFocused: boolean) => (
       <Icons.Wallet
         size={verticalScale(30)}

@@ -2,6 +2,18 @@ import { supabase } from "@/config/supabase";
 import { walletIconMap, WalletIconName } from "@/constants/walletIcons";
 import { ResponseType, TransactionType } from "@/types";
 
+export type TransactionSearchPeriod = "all" | "month" | "30days" | "year";
+
+export type TransactionSearchFilters = {
+  query?: string;
+  type?: "all" | "income" | "expense";
+  category?: string;
+  walletId?: string;
+  period?: TransactionSearchPeriod;
+  page?: number;
+  pageSize?: number;
+};
+
 type TransactionRow = {
   id: string;
   user_id: string;
@@ -58,6 +70,30 @@ const parseTransactionDate = (date?: string | null): Date | undefined => {
   if (!year || !month || !day) return undefined;
 
   return new Date(year, month - 1, day);
+};
+
+const getPeriodStart = (period: TransactionSearchPeriod): Date | undefined => {
+  const today = new Date();
+
+  if (period === "month") {
+    return new Date(today.getFullYear(), today.getMonth(), 1);
+  }
+
+  if (period === "30days") {
+    const start = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+    );
+    start.setDate(start.getDate() - 29);
+    return start;
+  }
+
+  if (period === "year") {
+    return new Date(today.getFullYear(), 0, 1);
+  }
+
+  return undefined;
 };
 
 const mapTransaction = (transaction: TransactionRow): TransactionType => ({
@@ -173,6 +209,74 @@ export const getUserTransactions = async (
     };
   } catch (error: any) {
     console.log("Error fetching transactions:", error);
+
+    return {
+      success: false,
+      msg: error?.message || "Something went wrong",
+    };
+  }
+};
+
+export const searchUserTransactions = async (
+  uid: string,
+  filters: TransactionSearchFilters = {},
+): Promise<ResponseType> => {
+  try {
+    if (!uid) {
+      return { success: false, msg: "User not found" };
+    }
+
+    const page = Math.max(0, filters.page ?? 0);
+    const pageSize = Math.min(100, Math.max(1, filters.pageSize ?? 20));
+    const from = page * pageSize;
+    const to = from + pageSize - 1;
+    const searchText = filters.query?.trim().replace(/[%_]/g, "") ?? "";
+
+    let query = supabase
+      .from("transactions")
+      .select("*", { count: "exact" })
+      .eq("user_id", uid);
+
+    if (searchText) {
+      query = query.ilike("name", `%${searchText}%`);
+    }
+
+    if (filters.type && filters.type !== "all") {
+      query = query.eq("type", filters.type);
+    }
+
+    if (filters.category) {
+      query = query.eq("category", filters.category);
+    }
+
+    if (filters.walletId) {
+      query = query.eq("wallet_id", filters.walletId);
+    }
+
+    const periodStart = getPeriodStart(filters.period ?? "all");
+
+    if (periodStart) {
+      query = query.gte("transaction_date", formatTransactionDate(periodStart));
+    }
+
+    const { data, error, count } = await query
+      .order("transaction_date", { ascending: false })
+      .order("created_at", { ascending: false })
+      .range(from, to);
+
+    if (error) {
+      return { success: false, msg: error.message };
+    }
+
+    return {
+      success: true,
+      data: {
+        items: ((data ?? []) as TransactionRow[]).map(mapTransaction),
+        total: count ?? 0,
+      },
+    };
+  } catch (error: any) {
+    console.log("Error searching transactions:", error);
 
     return {
       success: false,

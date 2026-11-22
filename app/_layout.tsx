@@ -43,6 +43,28 @@ const StackLayout = () => {
           presentation: "modal",
         }}
       />
+      <Stack.Screen
+        name="(modals)/budgetModal"
+        options={{
+          presentation: "modal",
+        }}
+      />
+      <Stack.Screen name="recurring" />
+      <Stack.Screen name="transactions" />
+      <Stack.Screen
+        name="(modals)/recurringModal"
+        options={{ presentation: "modal" }}
+      />
+      <Stack.Screen name="goals" />
+      <Stack.Screen name="goal-details" />
+      <Stack.Screen
+        name="(modals)/goalModal"
+        options={{ presentation: "modal" }}
+      />
+      <Stack.Screen
+        name="(modals)/goalContributionModal"
+        options={{ presentation: "modal" }}
+      />
     </Stack>
   );
 };

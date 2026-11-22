@@ -1,15 +1,22 @@
-export const supabaseUrl = "https://mzaqqpqbgvtjjzhdnnnz.supabase.co";
-export const supabasePublishableKey =
-  "sb_publishable_rMexfO183SaYHIMbsfZc7Q_OFs6mmyS";
+import "react-native-url-polyfill/auto";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient, processLock } from "@supabase/supabase-js";
 import { AppState, Platform } from "react-native";
-import "react-native-url-polyfill/auto";
 
+export const supabaseUrl = "https://mzaqqpqbgvtjjzhdnnnz.supabase.co";
+
+export const supabasePublishableKey =
+  "sb_publishable_rMexfO183SaYHIMbsfZc7Q_OFs6mmyS";
+
+// Chỉ sử dụng AsyncStorage trên Android và iOS
+const isNative = Platform.OS !== "web";
+
+// Tạo Supabase Client
 export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
   auth: {
-    ...(Platform.OS !== "web" ? { storage: AsyncStorage } : {}),
+    ...(isNative ? { storage: AsyncStorage } : {}),
+
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
@@ -17,12 +24,8 @@ export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
   },
 });
 
-// Tells Supabase Auth to continuously refresh the session automatically
-// if the app is in the foreground. When this is added, you will continue
-// to receive `onAuthStateChange` events with the `TOKEN_REFRESHED` or
-// `SIGNED_OUT` event if the user's session is terminated. This should
-// only be registered once.
-if (Platform.OS !== "web") {
+// Quản lý tự động làm mới session trên Android/iOS
+if (isNative) {
   AppState.addEventListener("change", (state) => {
     if (state === "active") {
       supabase.auth.startAutoRefresh();

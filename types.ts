@@ -178,3 +178,63 @@ export type WalletType = {
 
   created?: Date;
 };
+
+export type BudgetPeriod = "weekly" | "monthly";
+
+export type BudgetType = {
+  id?: string;
+  uid?: string;
+  category: string;
+  amount: number;
+  period: BudgetPeriod;
+  startDate: Date;
+  created?: Date;
+};
+
+export type BudgetWithProgress = BudgetType & {
+  spent: number;
+  remaining: number;
+  progress: number;
+  periodStart: Date;
+  periodEnd: Date;
+};
+
+export type RecurringFrequency = "weekly" | "monthly";
+
+export type RecurringRuleType = {
+  id?: string;
+  uid?: string;
+  walletId: string;
+  name: string;
+  type: "income" | "expense";
+  category: string;
+  amount: number;
+  frequency: RecurringFrequency;
+  nextRunDate: Date;
+  isActive: boolean;
+  created?: Date;
+};
+
+export type SavingsGoalType = {
+  id?: string;
+  uid?: string;
+  name: string;
+  targetAmount: number;
+  currency: "JPY";
+  deadline?: Date;
+  color: string;
+  savedAmount: number;
+  remaining: number;
+  progress: number;
+  monthlyRequired: number;
+  created?: Date;
+};
+
+export type SavingsContributionType = {
+  id: string;
+  goalId: string;
+  amount: number;
+  note?: string;
+  contributionDate: Date;
+  created?: Date;
+};
